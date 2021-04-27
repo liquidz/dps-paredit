@@ -1,0 +1,12 @@
+name: test
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: denoland/setup-deno@main
+        with:
+          deno-version: v1.x
+      - run: make format_check
+      - run: make test
