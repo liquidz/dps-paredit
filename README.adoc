@@ -1,3 +1,5 @@
 = dps-paredit
 
+image:https://github.com/liquidz/dps-paredit/actions/workflows/test.yml/badge.svg["GitHub Actions for test workflow", link="https://github.com/liquidz/dps-paredit/actions?query=workflow%3Atest"]
+
 work in progress
