@@ -113,11 +113,10 @@ Deno.test("deleteChar", async () => {
     [`(a)\n(b)\n(c)`, 4, { source: null, startLine: 0, endLine: 0 }],
     [`(a)\n(b)\n(c)`, 5, { source: `()`, startLine: 1, endLine: 1 }],
 
-    // あれ？？
-    [`()\n()\n()`, 0, { source: `()`, startLine: 0, endLine: 0 }],
-    // あれ？？
-    [`()\n()\n()`, 1, { source: `()`, startLine: 0, endLine: 0 }],
-    [`()\n()\n()`, 3, { source: ``, startLine: 1, endLine: 1 }],
+    [`()\n()`, 0, { source: ``, startLine: 0, endLine: 0 }],
+    [`()\n()`, 1, { source: ``, startLine: 0, endLine: 0 }],
+    [`()\n()`, 3, { source: ``, startLine: 1, endLine: 1 }],
+    [`()\n()`, 4, { source: ``, startLine: 1, endLine: 1 }],
   ];
   for (const [src, idx, expected] of patterns) {
     asserts.assertEquals(sut.deleteChar(src, idx), expected);

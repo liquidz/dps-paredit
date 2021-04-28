@@ -68,10 +68,10 @@ function applyChanges(
 
   if (returnMinimizeChanges) {
     // not containing the character at minColumn
-    const lastNearestNewLine = result.lastIndexOf(
-      "\n",
-      Math.max(0, minColumn - 1),
-    );
+    const lastNearestNewLine = (minColumn - 1 >= 0)
+      ? result.lastIndexOf("\n", minColumn - 1)
+      : -1;
+
     if (lastNearestNewLine != -1) {
       // containing the character at lastNearestNewLine
       result = result.slice(lastNearestNewLine + 1);
@@ -127,17 +127,9 @@ export function deleteChar(src: string, idx: number): ChangedResult {
   return applyChanges(src, res, true);
 }
 
-// let src = `(\n)`;
-// let ast = paredit.parse(src);
-// const res = paredit.editor.delete(ast, src, 2, {});
-// console.log(res);
-//console.log(deleteChar(`(a)\n(b)\n(foo)`, 5));
-
 export function killSexp(src: string, idx: number): ChangedResult {
   const ast = paredit.parse(src);
   const res = paredit.editor.killSexp(ast, src, idx, {});
-  // const [newSrc] = applyChanges(src, res, true);
-  // return newSrc;
   return applyChanges(src, res, true);
 }
 
