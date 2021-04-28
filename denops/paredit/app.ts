@@ -145,12 +145,11 @@ denops.main(async ({ vim }) => {
       return setLines(vim, baseLine + startLine, source);
     },
 
-    async killSexpAfterAll(pos: unknown): Promise<unknown> {
+    async killLine(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
       const [src, idx, [baseLine]] = await getAroundSrcAndIdx(vim, cursor, 100);
 
-      //const lines = await util_vim.getLines(vim, lnum, lnum + 100);
-      const { source, startLine } = paredit.killSexpAfterAll(src, idx);
+      const { source, startLine } = paredit.killLine(src, idx);
       return setLines(vim, baseLine + startLine, source);
     },
 
@@ -185,7 +184,7 @@ denops.main(async ({ vim }) => {
     command! DPSlurpSexp           call denops#request("${vim.name}", "slurpSexp", [getpos('.')])
     command! DPDelete              call denops#request("${vim.name}", "delete", [getpos('.')])
     command! DPKillSexp            call denops#request("${vim.name}", "killSexp", [getpos('.')])
-    command! DPKillSexpAfterAll    call denops#request("${vim.name}", "killSexpAfterAll", [getpos('.')])
+    command! DPKillLine            call denops#request("${vim.name}", "killLine", [getpos('.')])
     command! DPSpliceSexp          call denops#request("${vim.name}", "spliceSexp", [getpos('.')])
     command! DPSplitSexp           call denops#request("${vim.name}", "splitSexp", [getpos('.')])
     command! DPWrapAround          call denops#request("${vim.name}", "wrapAround", [getpos('.')])

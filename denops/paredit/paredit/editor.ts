@@ -154,23 +154,66 @@ export function wrapAround(src: string, idx: number): Source {
   return source;
 }
 
-export function killSexpAfterAll(src: string, idx: number): ChangedResult {
-  let currentSrc = src;
-  let { line } = idxToPos(src, 0, idx);
+function deleteAfter(src: string, idx: number): Source {
+  const ast = paredit.parse(src);
+  const endIdx = src.indexOf("\n", idx);
+  const res = paredit.editor.delete(ast, src, idx, {
+    endIdx: (endIdx === -1) ? src.length : endIdx,
+  });
+  if (res !== null && res !== undefined) {
+    const { source: newSrc } = applyChanges(src, res, false);
+    return newSrc;
+  }
+  return null;
+}
 
-  while (true) {
-    const ast = paredit.parse(currentSrc);
-    const res = paredit.editor.killSexp(ast, currentSrc, idx, {});
-    if (res === null) break;
+function doesContainChangesBefore(ec: EditorChanges, baseIdx: number): boolean {
+  for (const change of ec.changes) {
+    const [, idx] = change;
+    if (idx < baseIdx) return true;
+  }
+  return false;
+}
 
-    const { source: newSrc } = applyChanges(currentSrc, res, false);
+export function killLine(src: string, idx: number): ChangedResult {
+  const { line } = idxToPos(src, 0, idx);
+  let currentSrc = src as Source;
+  let currentIdx = idx;
 
-    if (newSrc === null) break;
-    currentSrc = newSrc;
+  currentSrc = deleteAfter(src, idx);
+  if (currentSrc === null || currentSrc === undefined) {
+    currentSrc = src;
+
+    while (true) {
+      if (currentIdx >= currentSrc.length) break;
+
+      const c = currentSrc.charAt(currentIdx);
+      if (c === "\n") break;
+
+      const ast = paredit.parse(currentSrc);
+      const res = paredit.editor.delete(
+        ast,
+        currentSrc,
+        currentIdx,
+        {},
+      ) as EditorChanges;
+
+      if (res === null || doesContainChangesBefore(res, idx)) {
+        currentIdx++;
+        continue;
+      }
+
+      const { source: newSrc } = applyChanges(currentSrc, res, false);
+      if (newSrc === null) {
+        currentIdx++;
+        continue;
+      }
+      currentSrc = newSrc;
+    }
   }
 
   return {
-    source: currentSrc.split("\n")[line],
+    source: (currentSrc === src) ? null : currentSrc.split("\n")[line],
     startLine: line,
     endLine: line,
   };

@@ -70,23 +70,34 @@ Deno.test("killSexp", async () => {
   }
 });
 
-Deno.test("killSexpAfterAll", async () => {
+Deno.test("killLine", async () => {
   patterns = [
     [`(a (b))`, 0, { source: ``, startLine: 0, endLine: 0 }],
     [`(a (b))`, 1, { source: `()`, startLine: 0, endLine: 0 }],
     [`(a (b))`, 2, { source: `(a)`, startLine: 0, endLine: 0 }],
     [`(a (b))`, 3, { source: `(a )`, startLine: 0, endLine: 0 }],
     [`(a (b))`, 4, { source: `(a ())`, startLine: 0, endLine: 0 }],
-    [`(a (b))`, 5, { source: `(a (b))`, startLine: 0, endLine: 0 }],
-    [`(a (b))`, 6, { source: `(a (b))`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, 5, { source: null, startLine: 0, endLine: 0 }],
+    [`(a (b))`, 6, { source: null, startLine: 0, endLine: 0 }],
 
     [`(a) (b)`, 0, { source: ``, startLine: 0, endLine: 0 }],
-    // TODO
-    //[`(a\n(b))`, 0, { source: `(`, startLine: 0, endLine: 0 }],
+    [`(a) (b)`, 1, { source: `()`, startLine: 0, endLine: 0 }],
+    [`(a) (b)`, 2, { source: `(a)`, startLine: 0, endLine: 0 }],
+    [`(a) (b)`, 3, { source: `(a)`, startLine: 0, endLine: 0 }],
+    [`(a) (b)`, 4, { source: `(a) `, startLine: 0, endLine: 0 }],
+    [`(a) (b)`, 5, { source: `(a) ()`, startLine: 0, endLine: 0 }],
+    [`(a) (b)`, 6, { source: null, startLine: 0, endLine: 0 }],
+
+    [`(a\n(b))`, 0, { source: `(`, startLine: 0, endLine: 0 }],
+    [`(a\n(b))`, 1, { source: `(`, startLine: 0, endLine: 0 }],
+    [`(a\n(b))`, 3, { source: `)`, startLine: 1, endLine: 1 }],
+    [`(a\n(b))`, 4, { source: `())`, startLine: 1, endLine: 1 }],
+    [`(a\n(b))`, 5, { source: null, startLine: 1, endLine: 1 }],
+    [`(a\n(b))`, 6, { source: null, startLine: 1, endLine: 1 }],
   ];
 
   for (const [src, idx, expected] of patterns) {
-    asserts.assertEquals(sut.killSexpAfterAll(src, idx), expected);
+    asserts.assertEquals(sut.killLine(src, idx), expected);
   }
 });
 
