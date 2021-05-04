@@ -177,48 +177,6 @@ function _doesContainChangesBefore(
   return false;
 }
 
-export function killLine(src: string, idx: number): ChangedResult {
-  const { line } = idxToPos(src, 0, idx);
-  let currentSrc = src as Source;
-  let currentIdx = idx;
-
-  currentSrc = _deleteRange(src, idx, src.indexOf("\n", idx));
-  if (currentSrc === null || currentSrc === undefined) {
-    currentSrc = src;
-
-    while (true) {
-      if (currentIdx >= currentSrc.length) break;
-      if (currentSrc.charAt(currentIdx) === "\n") break;
-
-      const ast = paredit.parse(currentSrc);
-      const res = paredit.editor.delete(
-        ast,
-        currentSrc,
-        currentIdx,
-        {},
-      ) as EditorChanges;
-
-      if (res === null || _doesContainChangesBefore(res, idx)) {
-        currentIdx++;
-        continue;
-      }
-
-      const { source: newSrc } = applyChanges(currentSrc, res, false);
-      if (newSrc === null) {
-        currentIdx++;
-        continue;
-      }
-      currentSrc = newSrc;
-    }
-  }
-
-  return {
-    source: (currentSrc === src) ? null : currentSrc.split("\n")[line],
-    startLine: line,
-    endLine: line,
-  };
-}
-
 export function killRange(
   src: string,
   startIdx: number,
@@ -274,4 +232,9 @@ export function killRange(
     startLine: startLine,
     endLine: endLine,
   };
+}
+
+export function killLine(src: string, idx: number): ChangedResult {
+  const endIdx = src.indexOf("\n", idx);
+  return killRange(src, idx, (endIdx !== -1) ? endIdx - 1 : src.length - 1);
 }
