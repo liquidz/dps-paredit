@@ -44,8 +44,7 @@ export async function replaceLines(
     return setLines(vim, range.startLine, text);
   } else {
     await vim.execute(`:${range.startLine + 1},${range.endLine + 1}delete`);
-    // FIXME
-    //vim.call("append", range.startLine + 1, texts);
+    vim.call("append", range.startLine, texts);
   }
 }
 

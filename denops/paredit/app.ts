@@ -7,7 +7,7 @@ import {
   replaceLines,
   setLines,
 } from "./vim.ts";
-import { Cursor } from "./_interface.ts";
+import { Cursor, LineRange } from "./_interface.ts";
 import { denops } from "./deps.ts";
 
 // ========================================================
@@ -15,32 +15,39 @@ import { denops } from "./deps.ts";
 // lnum and cnum are converted to 0-based index by ./vim.ts
 // ========================================================
 
-type Range = [number, number];
-
 async function getAroundSrcAndIdx(
   vim: denops.Vim,
   start: Cursor,
   offset: number,
-  end?: Range,
-): Promise<[string, number, Range]> {
-  const { line, column } = start;
+  end?: Cursor,
+): Promise<[string, number, number, LineRange]> {
+  const { line: fromLine, column: fromColumn } = start;
+  const { line: toLine, column: toColumn } = (end === undefined) ? start : end;
 
-  const startLine = Math.max(0, line - offset);
-  const endLine = line + offset;
-  const lines = await getLines(vim, line, line + offset);
+  const startLine = Math.max(0, fromLine - offset);
+  const endLine = toLine + offset;
+  const lines = await getLines(vim, fromLine, toLine + offset);
+
   let src = lines.join("\n");
-  let idx = column;
+  let idx = fromColumn;
+  let endIdx = toColumn;
 
-  if (startLine !== line) {
-    const exLines = await getLines(vim, startLine, line - 1);
+  if (toLine !== fromLine) {
+    const srcBeforeEndCursor =
+      lines.slice(0, Math.min(lines.length - 1, toLine - fromLine)).join("\n") +
+      "\n";
+    endIdx += srcBeforeEndCursor.length;
+  }
+
+  if (startLine !== fromLine) {
+    const exLines = await getLines(vim, startLine, fromLine - 1);
     const exSrc = exLines.join("\n") + "\n";
     src = exSrc + src;
     idx += exSrc.length;
+    endIdx += exSrc.length;
   }
-  // end もあれば end の idx も返すようにしたい
-  // そうすると sexpRangeExpansion が実装できる(はず)
 
-  return [src, idx, [startLine, endLine]];
+  return [src, idx, endIdx, { startLine: startLine, endLine: endLine }];
 }
 
 async function visualRange(vim: denops.Vim): Promise<[Cursor, Cursor]> {
@@ -75,7 +82,8 @@ denops.main(async ({ vim }) => {
 
     async sexpRange(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, [baseLine]] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const { startLine: baseLine } = rng;
       const [start, end] = paredit.sexpRange(src, idx);
 
       const startCursor = idxToPos(src, baseLine, start);
@@ -110,14 +118,16 @@ denops.main(async ({ vim }) => {
 
     async barfSexp(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, [baseLine]] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const { startLine: baseLine } = rng;
       const { source, startLine } = paredit.barfSexp(src, idx);
       return setLines(vim, baseLine + startLine, source);
     },
 
     async slurpSexp(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, [baseLine]] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const { startLine: baseLine } = rng;
 
       const { source, startLine } = paredit.slurpSexp(src, idx);
       return setLines(vim, baseLine + startLine, source);
@@ -125,7 +135,8 @@ denops.main(async ({ vim }) => {
 
     async delete(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, [baseLine]] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const { startLine: baseLine } = rng;
       const { source, startLine, endLine } = paredit.deleteChar(src, idx);
 
       if (source === null) {
@@ -140,17 +151,40 @@ denops.main(async ({ vim }) => {
 
     async killSexp(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, [baseLine]] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const { startLine: baseLine } = rng;
       const { source, startLine } = paredit.killSexp(src, idx);
       return setLines(vim, baseLine + startLine, source);
     },
 
     async killLine(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, [baseLine]] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const { startLine: baseLine } = rng;
 
       const { source, startLine } = paredit.killLine(src, idx);
       return setLines(vim, baseLine + startLine, source);
+    },
+
+    async killRange(): Promise<unknown> {
+      const [fromCursor, toCursor] = await visualRange(vim);
+      const [src, idx, endIdx, rng] = await getAroundSrcAndIdx(
+        vim,
+        fromCursor,
+        100,
+        toCursor,
+      );
+      const { startLine: baseLine } = rng;
+
+      const { source, startLine, endLine } = paredit.killRange(
+        src,
+        idx,
+        endIdx,
+      );
+      return replaceLines(vim, {
+        startLine: baseLine + startLine,
+        endLine: baseLine + endLine,
+      }, source);
     },
 
     async spliceSexp(pos: unknown): Promise<unknown> {
@@ -185,6 +219,7 @@ denops.main(async ({ vim }) => {
     command! DPDelete              call denops#request("${vim.name}", "delete", [getpos('.')])
     command! DPKillSexp            call denops#request("${vim.name}", "killSexp", [getpos('.')])
     command! DPKillLine            call denops#request("${vim.name}", "killLine", [getpos('.')])
+    command! -range DPKillRange    call denops#request("${vim.name}", "killRange", [])
     command! DPSpliceSexp          call denops#request("${vim.name}", "spliceSexp", [getpos('.')])
     command! DPSplitSexp           call denops#request("${vim.name}", "splitSexp", [getpos('.')])
     command! DPWrapAround          call denops#request("${vim.name}", "wrapAround", [getpos('.')])
