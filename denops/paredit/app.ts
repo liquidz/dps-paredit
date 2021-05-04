@@ -11,6 +11,8 @@ import {
 import { Cursor, LineRange } from "./_interface.ts";
 import { denops } from "./deps.ts";
 
+let g_dps_paredit_matchlines = 100;
+
 // ========================================================
 // NOTE:
 // lnum and cnum are converted to 0-based index by ./vim.ts
@@ -94,24 +96,21 @@ denops.main(async ({ vim }) => {
       return selectByCursor(vim, startCursor, endCursor);
     },
 
-    // async sexpRangeExpansion(pos: unknown): Promise<unknown> {
-    //   const [[startLnum, startCnum], [endLnum, endCnum]] = await visualRange(
-    //     vim,
-    //   );
-    //   // const [startLnum, startCnum] = util_vim.parsePos(
-    //   //   await vim.call("getpos", "'<"),
-    //   // );
-    //   // const [endLnum, endCnum] = util_vim.parsePos(
-    //   //   await vim.call("getpos", "'>"),
-    //   // );
-    //
-    //   const [src, startIdx, [baseLine]] = await getAroundSrcAndIdx(
-    //     vim,
-    //     [startLnum, startCnum],
-    //     (endLnum - startLnum) + 100,
-    //   );
-    //   return Promise.resolve(true);
-    // },
+    async sexpRangeExpansion(): Promise<unknown> {
+      const [fromCursor, toCursor] = await visualRange(vim);
+      const [src, startIdx, endIdx, rng] = await getAroundSrcAndIdx(
+        vim,
+        fromCursor,
+        g_dps_paredit_matchlines,
+        toCursor,
+      );
+      const { startLine: baseLine } = rng;
+      const [start, end] = paredit.sexpRangeExpansion(src, startIdx, endIdx);
+
+      const newStartCursor = idxToPos(src, baseLine, start);
+      const newEndCursor = idxToPos(src, baseLine, end);
+      return selectByCursor(vim, newStartCursor, newEndCursor);
+    },
 
     async barfSexp(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
@@ -210,7 +209,7 @@ denops.main(async ({ vim }) => {
   await vim.execute(`
     command! DPForwardSexp         call denops#request("${vim.name}", "forwardSexp", [getpos('.')])
     command! DPSexpRange           call denops#request("${vim.name}", "sexpRange", [getpos('.')])
-    command! -range DPSexpRangeExpansion  call denops#request("${vim.name}", "sexpRangeExpansion", [getpos('.')])
+    command! -range DPSexpRangeExpansion  call denops#request("${vim.name}", "sexpRangeExpansion", [])
     command! DPBarfSexp            call denops#request("${vim.name}", "barfSexp", [getpos('.')])
     command! DPSlurpSexp           call denops#request("${vim.name}", "slurpSexp", [getpos('.')])
     command! DPDelete              call denops#request("${vim.name}", "delete", [getpos('.')])
