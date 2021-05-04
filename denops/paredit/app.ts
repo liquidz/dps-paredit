@@ -30,7 +30,8 @@ async function getAroundSrcAndIdx(
 
   let src = lines.join("\n");
   let idx = fromColumn;
-  let endIdx = toColumn;
+  // WARN: In linewise visual mode, toColumn seems to be too large number (e.g. 2147483649)
+  let endIdx = Math.min(lines[toLine - 1].length - 1, toColumn);
 
   if (toLine !== fromLine) {
     const srcBeforeEndCursor =
