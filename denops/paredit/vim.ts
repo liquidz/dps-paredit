@@ -12,7 +12,7 @@ export async function getLines(
     (typeof end === "number") ? end + 1 : end,
   );
   if (!Array.isArray(lines)) {
-    throw new Error("FIXME");
+    throw new Error(`The lines must be an Array.`);
   }
   return Promise.resolve(lines);
 }
@@ -43,27 +43,19 @@ export async function replaceLines(
   if (texts.length === (range.endLine - range.startLine + 1)) {
     return setLines(vim, range.startLine, text);
   } else {
-    // console.log(
-    //   `FIXME kotti? '${text}' ${texts.length}, ${(range.endLine -
-    //     range.startLine + 1)}`,
-    // );
-    // Num of lines are decreased
-    // Num of lines are increased
-    // console.log(
-    //   `FIXME (${range.startLine},${range.endLine}) texts = '${texts}'`,
-    // );
     await vim.execute(`:${range.startLine + 1},${range.endLine + 1}delete`);
+    // FIXME
     //vim.call("append", range.startLine + 1, texts);
   }
 }
 
 export function parsePos(pos: unknown): Cursor {
   if (!Array.isArray(pos)) {
-    throw new Error("FIXME");
+    throw new Error(`The pos must be an Array`);
   }
   const [, lnum, col] = pos;
   if (typeof lnum !== "number" || typeof col !== "number") {
-    throw new Error("FIXME");
+    throw new Error(`The lnum and col must be a number`);
   }
   // lnum and cnum is 1-based index, so convert to 0-based index
   return { line: lnum - 1, column: col - 1 };
