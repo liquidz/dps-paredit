@@ -41,7 +41,7 @@ export function sexpRangeExpansion(
   endIdx: number,
 ): [number, number] {
   const ast = parse(srcOrObj);
-  return paredit.navigator.sexpRangeExpansion(ast, startIdx, endIdx);
+  return paredit.navigator.sexpRangeExpansion(ast, startIdx, endIdx + 1);
 }
 
 export function rangeForDefun(
