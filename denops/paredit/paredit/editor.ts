@@ -154,10 +154,9 @@ export function wrapAround(src: string, idx: number): Source {
   return source;
 }
 
-function deleteAfter(src: string, idx: number): Source {
+function _deleteRange(src: string, startIdx: number, endIdx: number): Source {
   const ast = paredit.parse(src);
-  const endIdx = src.indexOf("\n", idx);
-  const res = paredit.editor.delete(ast, src, idx, {
+  const res = paredit.editor.delete(ast, src, startIdx, {
     endIdx: (endIdx === -1) ? src.length : endIdx,
   });
   if (res !== null && res !== undefined) {
@@ -167,7 +166,10 @@ function deleteAfter(src: string, idx: number): Source {
   return null;
 }
 
-function doesContainChangesBefore(ec: EditorChanges, baseIdx: number): boolean {
+function _doesContainChangesBefore(
+  ec: EditorChanges,
+  baseIdx: number,
+): boolean {
   for (const change of ec.changes) {
     const [, idx] = change;
     if (idx < baseIdx) return true;
@@ -180,15 +182,13 @@ export function killLine(src: string, idx: number): ChangedResult {
   let currentSrc = src as Source;
   let currentIdx = idx;
 
-  currentSrc = deleteAfter(src, idx);
+  currentSrc = _deleteRange(src, idx, src.indexOf("\n", idx));
   if (currentSrc === null || currentSrc === undefined) {
     currentSrc = src;
 
     while (true) {
       if (currentIdx >= currentSrc.length) break;
-
-      const c = currentSrc.charAt(currentIdx);
-      if (c === "\n") break;
+      if (currentSrc.charAt(currentIdx) === "\n") break;
 
       const ast = paredit.parse(currentSrc);
       const res = paredit.editor.delete(
@@ -198,7 +198,7 @@ export function killLine(src: string, idx: number): ChangedResult {
         {},
       ) as EditorChanges;
 
-      if (res === null || doesContainChangesBefore(res, idx)) {
+      if (res === null || _doesContainChangesBefore(res, idx)) {
         currentIdx++;
         continue;
       }
@@ -216,5 +216,62 @@ export function killLine(src: string, idx: number): ChangedResult {
     source: (currentSrc === src) ? null : currentSrc.split("\n")[line],
     startLine: line,
     endLine: line,
+  };
+}
+
+export function killRange(
+  src: string,
+  startIdx: number,
+  endIdx: number,
+): ChangedResult {
+  const { line: startLine } = idxToPos(src, 0, startIdx);
+  const { line: endLine } = idxToPos(src, 0, endIdx);
+  let currentSrc = src as Source;
+  let currentIdx = startIdx;
+  let currentEndIdx = endIdx;
+
+  currentSrc = _deleteRange(src, startIdx, endIdx + 1);
+  if (currentSrc === null || currentSrc === undefined) {
+    currentSrc = src;
+
+    while (true) {
+      if (currentIdx >= currentSrc.length) break;
+      if (currentIdx > currentEndIdx) break;
+
+      const ast = paredit.parse(currentSrc);
+      const res = paredit.editor.delete(
+        ast,
+        currentSrc,
+        currentIdx,
+        {},
+      ) as EditorChanges;
+
+      if (res === null || _doesContainChangesBefore(res, startIdx)) {
+        currentIdx++;
+        continue;
+      }
+
+      const { source: newSrc } = applyChanges(currentSrc, res, false);
+      if (newSrc === null) {
+        currentIdx++;
+        continue;
+      }
+
+      currentSrc = newSrc;
+      const [, , n] = res.changes[0];
+      if (typeof n === "number") {
+        currentEndIdx -= n;
+      } else {
+        currentEndIdx -= 1;
+      }
+
+      currentIdx = res.newIndex;
+    }
+  }
+
+  return {
+    source: (currentSrc === src) ? null : currentSrc.split("\n")[startLine],
+    startLine: startLine,
+    endLine: endLine,
   };
 }

@@ -3,7 +3,9 @@ import { asserts } from "../deps.ts";
 import { ChangedResult } from "../_interface.ts";
 
 type TestPattern = [string, number, ChangedResult];
+type TestPattern2 = [string, Array<number>, ChangedResult];
 let patterns = [] as Array<TestPattern>;
+let patterns2 = [] as Array<TestPattern2>;
 
 Deno.test("barfSexp", async () => {
   patterns = [
@@ -131,5 +133,61 @@ Deno.test("deleteChar", async () => {
   ];
   for (const [src, idx, expected] of patterns) {
     asserts.assertEquals(sut.deleteChar(src, idx), expected);
+  }
+});
+
+Deno.test("killRange", async () => {
+  patterns2 = [
+    [`(a (b))`, [0, 6], { source: ``, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [0, 5], { source: `()`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [0, 4], { source: `(())`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [0, 3], { source: `((b))`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [0, 2], { source: `((b))`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [0, 1], { source: `( (b))`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [0, 0], { source: null, startLine: 0, endLine: 0 }],
+
+    [`(a (b))`, [1, 6], { source: `()`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [1, 5], { source: `()`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [1, 4], { source: `(())`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [1, 3], { source: `((b))`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [1, 2], { source: `((b))`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [1, 1], { source: `( (b))`, startLine: 0, endLine: 0 }],
+    [`(a (b))`, [1, 4], { source: `(())`, startLine: 0, endLine: 0 }],
+
+    //// Test patterns containing new lines
+    [`(a\n(b\n(c)))`, [0, 10], { source: ``, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [0, 9], { source: `()`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [0, 8], { source: `(())`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [0, 7], { source: `((()))`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [0, 6], { source: `(((c)))`, startLine: 0, endLine: 2 }],
+    //[`(a\n(b\n(c)))`, [0, 5], { source: `(((c)))`, startLine: 0, endLine: 1 }],
+    [`(a\n(b\n(c)))`, [0, 4], { source: `((`, startLine: 0, endLine: 1 }],
+    [`(a\n(b\n(c)))`, [0, 3], { source: `((b`, startLine: 0, endLine: 1 }],
+    //[`(a\n(b\n(c)))`, [0, 2], { source: `((b`, startLine: 0, endLine: 1 }],
+    [`(a\n(b\n(c)))`, [0, 1], { source: `(`, startLine: 0, endLine: 0 }],
+    [`(a\n(b\n(c)))`, [0, 0], { source: null, startLine: 0, endLine: 0 }],
+
+    [`(a\n(b\n(c)))`, [1, 10], { source: `()`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [1, 9], { source: `()`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [1, 8], { source: `(())`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [1, 7], { source: `((()))`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [1, 6], { source: `(((c)))`, startLine: 0, endLine: 2 }],
+    //[`(a\n(b\n(c)))`, [1, 5], { source: `(((c)))`, startLine: 0, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [1, 4], { source: `((`, startLine: 0, endLine: 1 }],
+    [`(a\n(b\n(c)))`, [1, 3], { source: `((b`, startLine: 0, endLine: 1 }],
+    //[`(a\n(b\n(c)))`, [1, 2], { source: `((b`, startLine: 0, endLine: 1 }],
+    [`(a\n(b\n(c)))`, [1, 1], { source: `(`, startLine: 0, endLine: 0 }],
+
+    [`(a\n(b\n(c)))`, [3, 10], { source: `)`, startLine: 1, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [3, 9], { source: `)`, startLine: 1, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [3, 8], { source: `())`, startLine: 1, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [3, 7], { source: `(()))`, startLine: 1, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [3, 6], { source: `((c)))`, startLine: 1, endLine: 2 }],
+    //[`(a\n(b\n(c)))`, [3, 5], { source: `((c)))`, startLine: 1, endLine: 2 }],
+    [`(a\n(b\n(c)))`, [3, 4], { source: `(`, startLine: 1, endLine: 1 }],
+    [`(a\n(b\n(c)))`, [3, 3], { source: null, startLine: 1, endLine: 1 }],
+  ];
+  for (const [src, [startIdx, endIdx], expected] of patterns2) {
+    asserts.assertEquals(sut.killRange(src, startIdx, endIdx), expected);
   }
 });
