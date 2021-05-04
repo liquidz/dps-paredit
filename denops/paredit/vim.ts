@@ -66,3 +66,16 @@ export async function moveCursor(
 ): Promise<unknown> {
   return vim.call("cursor", cursor.line + 1, cursor.column + 1);
 }
+
+export async function selectByCursor(
+  vim: denops.Vim,
+  from: Cursor, // 0-based
+  to: Cursor, // 0-based
+): Promise<unknown> {
+  await moveCursor(vim, from);
+  await vim.execute("normal! v");
+  return moveCursor(vim, {
+    line: to.line,
+    column: to.column - 1,
+  });
+}

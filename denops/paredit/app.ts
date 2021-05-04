@@ -5,6 +5,7 @@ import {
   moveCursor,
   parsePos,
   replaceLines,
+  selectByCursor,
   setLines,
 } from "./vim.ts";
 import { Cursor, LineRange } from "./_interface.ts";
@@ -90,12 +91,7 @@ denops.main(async ({ vim }) => {
       const startCursor = idxToPos(src, baseLine, start);
       const endCursor = idxToPos(src, baseLine, end);
 
-      await moveCursor(vim, startCursor);
-      await vim.execute("normal! v");
-      return moveCursor(vim, {
-        line: endCursor.line,
-        column: endCursor.column - 1,
-      });
+      return selectByCursor(vim, startCursor, endCursor);
     },
 
     // async sexpRangeExpansion(pos: unknown): Promise<unknown> {
