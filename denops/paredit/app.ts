@@ -34,7 +34,10 @@ async function getAroundSrcAndIdx(
   let src = lines.join("\n");
   let idx = fromColumn;
   // WARN: In linewise visual mode, toColumn seems to be too large number (e.g. 2147483649)
-  let endIdx = Math.min(lines[toLine - 1].length - 1, toColumn);
+  let endIdx = Math.min(
+    lines[Math.max(0, toLine - fromLine - 1)].length - 1,
+    toColumn,
+  );
 
   if (toLine !== fromLine) {
     const srcBeforeEndCursor =
@@ -86,7 +89,11 @@ denops.main(async ({ vim }) => {
 
     async sexpRange(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(
+        vim,
+        cursor,
+        g_dps_paredit_matchlines,
+      );
       const { startLine: baseLine } = rng;
       const [start, end] = paredit.sexpRange(src, idx);
 
@@ -114,7 +121,11 @@ denops.main(async ({ vim }) => {
 
     async barfSexp(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(
+        vim,
+        cursor,
+        g_dps_paredit_matchlines,
+      );
       const { startLine: baseLine } = rng;
       const { source, startLine } = paredit.barfSexp(src, idx);
       return setLines(vim, baseLine + startLine, source);
@@ -122,7 +133,11 @@ denops.main(async ({ vim }) => {
 
     async slurpSexp(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(
+        vim,
+        cursor,
+        g_dps_paredit_matchlines,
+      );
       const { startLine: baseLine } = rng;
 
       const { source, startLine } = paredit.slurpSexp(src, idx);
@@ -131,7 +146,11 @@ denops.main(async ({ vim }) => {
 
     async delete(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(
+        vim,
+        cursor,
+        g_dps_paredit_matchlines,
+      );
       const { startLine: baseLine } = rng;
       const { source, startLine, endLine } = paredit.deleteChar(src, idx);
 
@@ -147,7 +166,11 @@ denops.main(async ({ vim }) => {
 
     async killSexp(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(
+        vim,
+        cursor,
+        g_dps_paredit_matchlines,
+      );
       const { startLine: baseLine } = rng;
       const { source, startLine } = paredit.killSexp(src, idx);
       return setLines(vim, baseLine + startLine, source);
@@ -155,7 +178,11 @@ denops.main(async ({ vim }) => {
 
     async killLine(pos: unknown): Promise<unknown> {
       const cursor = parsePos(pos);
-      const [src, idx, , rng] = await getAroundSrcAndIdx(vim, cursor, 100);
+      const [src, idx, , rng] = await getAroundSrcAndIdx(
+        vim,
+        cursor,
+        g_dps_paredit_matchlines,
+      );
       const { startLine: baseLine } = rng;
 
       const { source, startLine } = paredit.killLine(src, idx);
@@ -167,7 +194,7 @@ denops.main(async ({ vim }) => {
       const [src, idx, endIdx, rng] = await getAroundSrcAndIdx(
         vim,
         fromCursor,
-        100,
+        g_dps_paredit_matchlines,
         toCursor,
       );
       const { startLine: baseLine } = rng;
@@ -185,21 +212,21 @@ denops.main(async ({ vim }) => {
 
     async spliceSexp(pos: unknown): Promise<unknown> {
       const { line, column } = parsePos(pos);
-      const lines = await getLines(vim, line, line + 100);
+      const lines = await getLines(vim, line, line + g_dps_paredit_matchlines);
       const newSrc = paredit.spliceSexp(lines.join("\n"), column);
       return setLines(vim, line, newSrc);
     },
 
     async splitSexp(pos: unknown): Promise<unknown> {
       const { line, column } = parsePos(pos);
-      const lines = await getLines(vim, line, line + 100);
+      const lines = await getLines(vim, line, line + g_dps_paredit_matchlines);
       const newSrc = paredit.splitSexp(lines.join("\n"), column);
       return setLines(vim, line, newSrc);
     },
 
     async wrapAround(pos: unknown): Promise<unknown> {
       const { line, column } = parsePos(pos);
-      const lines = await getLines(vim, line, line + 100);
+      const lines = await getLines(vim, line, line + g_dps_paredit_matchlines);
       const newSrc = paredit.wrapAround(lines.join("\n"), column);
       return setLines(vim, line, newSrc);
     },
@@ -224,7 +251,7 @@ denops.main(async ({ vim }) => {
     nnoremap <silent> <Plug>(dps_paredit_slurp)                 :<C-u>DPSlurpSexp<CR>
     nnoremap <silent> <Plug>(dps_paredit_delete)                :<C-u>DPDelete<CR>
     nnoremap <silent> <Plug>(dps_paredit_kill_sexp)             :<C-u>DPKillSexp<CR>
-    nnoremap <silent> <Plug>(dps_paredit_kill_sexp_after_all)   :<C-u>DPKillSexpAfterAll<CR>
+    nnoremap <silent> <Plug>(dps_paredit_kill_line)             :<C-u>DPKillLine<CR>
     nnoremap <silent> <Plug>(dps_paredit_splice_sexp)           :<C-u>DPSpliceSexp<CR>
     nnoremap <silent> <Plug>(dps_paredit_split_sexp)            :<C-u>DPSplitSexp<CR>
     nnoremap <silent> <Plug>(dps_paredit_wrap_around)           :<C-u>DPWrapAround<CR>
@@ -232,6 +259,12 @@ denops.main(async ({ vim }) => {
 
     vnoremap <silent> <Plug>(dps_paredit_sexp_range_expansion)  :<C-u>DPSexpRangeExpansion<CR>
   `);
+
+  // Get global variables
+  const matchlines = await vim.g.get("dps_paredit_matchlines");
+  if (typeof matchlines === "number") {
+    g_dps_paredit_matchlines = matchlines;
+  }
 
   console.log("dps-paredit has loaded");
 });
