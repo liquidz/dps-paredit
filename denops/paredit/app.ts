@@ -257,6 +257,7 @@ denops.main(async ({ vim }) => {
     nnoremap <silent> <Plug>(dps_paredit_wrap_around)           :<C-u>DPWrapAround<CR>
     nnoremap <silent> <Plug>(dps_paredit_sexp_range)            :<C-u>DPSexpRange<CR>
 
+    vnoremap <silent> <Plug>(dps_paredit_kill_range)            :<C-u>DPKillRange<CR>
     vnoremap <silent> <Plug>(dps_paredit_sexp_range_expansion)  :<C-u>DPSexpRangeExpansion<CR>
   `);
 
